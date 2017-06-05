@@ -1,7 +1,7 @@
 # Spatial-DS-Luig
 For spatial DS at midwestern state university.
 
-##Ryan Luig
+## Ryan Luig
 
 rjluig@gmail.com
 
