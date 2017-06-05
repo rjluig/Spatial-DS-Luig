@@ -5,4 +5,4 @@ For spatial DS at midwestern state university.
 
 rjluig@gmail.com
 
-![](https://scontent-dft4-2.xx.fbcdn.net/v/t1.0-9/14291710_10207412154214615_5379564090255586106_n.jpg)
+![](https://i.ytimg.com/vi/8aIswZT51-c/hqdefault.jpg)
