@@ -3,6 +3,7 @@ import os,sys
 import pygame
 import random 
 import math
+import pprint as pp
 
 # Get current working path
 DIRPATH = os.path.dirname(os.path.realpath(__file__))
@@ -88,8 +89,10 @@ class StateBorders(object):
         Returns a polygon of a single state from the US.
         Args:
             name (string): Name of a single state. 
+
         Returns:
             json (string object): Json representation of a state
+
         Usage:
             sb = StateBorders()
             texas = sb.get_state_polygon('texas')
@@ -112,8 +115,10 @@ class StateBorders(object):
         Returns a list of all the continental us states as polygons.
         Args:
             None
+
         Returns:
             list (list object): list of Json objects representing each continental state.
+
         Usage:
             sb = StateBorders()
             states = sb.get_continental_states()
@@ -136,6 +141,7 @@ class StateBorders(object):
         Returns boolean if key exists in json
         Args:
             key (string) : some identifier 
+
         Returns:
             T/F (bool) : True = Key exists
         """
@@ -164,8 +170,10 @@ class WorldCountries(object):
         Returns a list of all the countries us states.
         Args:
             None
+
         Returns:
             list (list object): List of Json objects representing each country 
+
         Usage:
             wc = WorldCountries()
             countries = wc.get_all_countries()
@@ -183,8 +191,10 @@ class WorldCountries(object):
         Returns a list of one country.
         Args:
             None
+
         Returns:
             list (list object): List of Json object representing a country 
+
         Usage:
             wc = WorldCountries()
             country = wc.get_country('AFG')
@@ -201,6 +211,7 @@ class WorldCountries(object):
         Returns boolean if key exists in json
         Args:
             key (string) : some identifier 
+
         Returns:
             T/F (bool) : True = Key exists
         """
@@ -228,8 +239,14 @@ class DrawGeoJson(object):
 
         self.polygons = []      # list of lists (polygons) to be drawn
 
+
         self.all_lats = []      # list for all lats so we can find mins and max's
         self.all_lons = []
+
+        # New added June 13
+        self.adjusted_polys = []
+        # New added June 13
+        self.adjusted_poly_dict = {}
 
         self.mapWidth = width       # width of the map in pixels
         self.mapHeight = height     # height of the map in pixels
@@ -247,6 +264,7 @@ class DrawGeoJson(object):
         Args:
             lon (float): longitude
             lat (float): latitude
+
         Returns:
             point (tuple): x,y coords adjusted to fit on print window
         """
@@ -260,20 +278,44 @@ class DrawGeoJson(object):
         return (x, y)
 
 
-    def add_polygon(self,poly):
+    def add_polygon(self,poly,id=None):
         """
         Add a polygon to local collection to be drawn later
         Args:
             poly (list): list of lat/lons
+
         Returns:
             None
         """
         self.polygons.append(poly)
+        # New added June 13
+        if id is not None:
+            # if country not in dict, make a list for its polygons
+            # to be appended to.
+            if id not in self.adjusted_poly_dict:
+                self.adjusted_poly_dict[id] = []
+            # append poly to dictionary with country as key (id).
+            self.adjusted_poly_dict[id].append(poly)   
         for p in poly:
             x,y = p
             self.all_lons.append(x)
             self.all_lats.append(y)
         self.__update_bounds()
+
+    # We should use recursion on these containers with arbitrary depth, but oh well.
+    def adjust_poly_dictionary(self):
+        #pp.pprint(self.adjusted_poly_dict)
+        for country,polys in self.adjusted_poly_dict.items():
+            new_polys = []
+            #print(country)
+            for poly in polys:
+                new_poly = []
+                for p in poly:
+                    x,y = p
+                    new_poly.append(self.convertGeoToPixel(x,y))
+                new_polys.append(new_poly)
+            self.adjusted_poly_dict[country] = new_polys
+        #pp.pprint(self.adjusted_poly_dict)
 
 
     def draw_polygons(self):
@@ -281,17 +323,18 @@ class DrawGeoJson(object):
         Draw our polygons to the screen
         Args:
             None
+
         Returns:
             None
         """ 
-        black = (0,0,0)
+
         for poly in self.polygons:
-
             adjusted = []
-
             for p in poly:
                 x,y = p
                 adjusted.append(self.convertGeoToPixel(x,y))
+            # New added June 13
+            self.adjusted_polys.append(adjusted)
             pygame.draw.polygon(self.screen, self.colors.get_random_color(), adjusted, 0)
 
     def __update_bounds(self):
@@ -301,6 +344,7 @@ class DrawGeoJson(object):
         the "bounding box" surrounding all the points. Not perfect.
         Args:
             None
+
         Returns:
             None
         """  
@@ -335,29 +379,31 @@ class DrawingFacade(object):
         expects a list of values.
         Args:
             ids (list) : A list of any state or country identifiers
+
         Returns:
             None
+
         Usage:
             df.add_polygons(['FRA','TX','ESP','AFG','NY','ME','Kenya'])
         """ 
         for id in ids:
             if self.wc.key_exists(id):
-                self.__add_country(self.wc.get_country(id))
+                self.__add_country(self.wc.get_country(id),id)
             elif self.sb.key_exists(id):
-                self.__add_state(self.sb.get_state(id))         
+                self.__add_state(self.sb.get_state(id),id)         
 
-    def __add_country(self,country):
+    def __add_country(self,country,id=None):
         for polys in country:
             for poly in polys:
                 if type(poly[0][0]) is float:
-                    gd.add_polygon(poly)
+                    gd.add_polygon(poly,id)
                 else:
                     for sub_poly in poly:
-                        self.gd.add_polygon(sub_poly)
+                        self.gd.add_polygon(sub_poly,id)
 
-    def __add_state(self,state):
+    def __add_state(self,state,id=None):
         for poly in state:
-            self.gd.add_polygon(poly)
+            self.gd.add_polygon(poly,id)
 
 
 
@@ -404,57 +450,58 @@ def mercator_projection(latlng,zoom=0,tile_size=256):
 def point_in_any_polygons(mousex, mousey, dg):
     """
     loops through polygons from the list of polygons in the class DrawGeoJson and checks
-    them one at a time. If the point x,y is inside any of the polygons. The polygon the point
-    was in is returned. If no polygons contains the point and empty list is returned.
+    them one at a time. If the point x,y is inside any of the polygons. The key forthe 
+    polygon that the point was in is returned. 
+    If no polygons contains the point and empty string is returned.
     """
-    for poly in dg.polygons:
-        adjusted = []
-        for p in poly:
-            x,y = p
-            adjusted.append(dg.convertGeoToPixel(x,y))
-        if point_inside_polygon(mousex,mousey, adjusted):
+    for key in dg.adjusted_poly_dict:
+        for poly in dg.adjusted_poly_dict[key]:
+            if point_inside_polygon(mousex,mousey, poly):
+                return key
 
-            return poly
+    return ""
 
-    return []
+# def Find_Name_from_Polygon(poly, lst):
+#     """
+#     Given a polygon and list of countries or their codes(and/or states) 
+#     this function finds which country the polygon belongs to 
+#     """
+#     wc = WorldCountries(DIRPATH + '/../Json_Files/countries.geo.json')
+#     sb = StateBorders(DIRPATH + '/../Json_Files/state_borders.json')
+#     same = True
+#     for c in lst:
+#         content = wc.get_country(c)
+#         print(c)
+#         if content != []: #if we are working with a country
+#             #print(poly)
+#             for polygons in content:
+#                 for polygon in polygons:
+#                     if type(polygon[0][0]) is float:
+#                         min = len(polygon)
+#                         if len(poly) == min:
 
-def Find_Name_from_Polygon(poly, countries):
-    """
-    Given a polygon and list of countries or their codes(and/or states) 
-    this function finds which country the polygon belongs to 
-    """
-    
-    for c in countries:
-        wc = WorldCountries(DIRPATH + '/../Json_Files/countries.geo.json')
-        sb = StateBorders(DIRPATH + '/../Json_Files/state_borders.json')
-        content = wc.get_country(c)
-
-        if content != []: #if we are working with a country
-            print(poly)
-            for polygons in content:
-                for polygon in polygons:
-                    if type(polygon[0][0]) is float:
-                        print(polygon)
-                        print(" ")
-                        print(poly)
-                        if polygon == poly:
-                            return c
-                    else:
-                        for sub_poly in polygon:
-                            if sub_poly == poly:
-                                return c
-        # content = sb.get_state(c)
-        # if content != []: #if we are working with a state
-        #     for polygons in content:
-        #         for polygon in polygons:
-        #             if type(polygon[0][0]) is float:
-        #                 if polygon == poly:
-        #                     return c
-        #             else:
-        #                 for sub_poly in polygon:
-        #                     if sub_poly == poly:
-        #                         return c
-        return " "
+#                             for i in range(min):
+#                                 if(poly[i] != polygon[i]):
+#                                     same = False
+#                             if(same):
+#                                 return c
+#                     # else
+#                     #     for sub_poly in polygon:
+#                     #         if sub_poly == poly:
+#                     #             print("else")
+#                     #             return c
+#         # content = sb.get_state(c)
+#         # if content != []: #if we are working with a state
+#         #     for polygons in content:
+#         #         for polygon in polygons:
+#         #             if type(polygon[0][0]) is float:
+#         #                 if polygon == poly:
+#         #                     return c
+#         #             else:
+#         #                 for sub_poly in polygon:
+#         #                     if sub_poly == poly:
+#         #                         return c
+#         return "NA "
             
 
 if __name__ == '__main__':
@@ -472,7 +519,9 @@ if __name__ == '__main__':
     # "screen" is what will be used as a reference so we can
     # pass it to functions and draw to it.
     screen = pygame.display.set_mode((width, height)) 
-
+    pygame.font.init()
+    fontStr = pygame.font.get_default_font()
+    myFont = pygame.font.SysFont(fontStr, 30)
     # Set title of window
     pygame.display.set_caption('Draw World Polygons')
 
@@ -485,17 +534,18 @@ if __name__ == '__main__':
     # Instances of our drawing classes
     gd = DrawGeoJson(screen,width,height)
     df = DrawingFacade(width,height)
+    dg = DrawGeoJson(screen, width, height)
 
     countriesAndStates =['Spain','France','Belgium','Italy','Ireland','Scotland','Greece','Germany','Egypt','Morocco','India']
     # Add countries and states to our drawing facade.
     # df.add_polygons(['FRA','TX','ESP','AFG','NY'])
     # df.add_polygons(['TX','NY','ME','Kenya'])
     df.add_polygons(countriesAndStates)
-    
+    dg.adjust_poly_dictionary()
     # Main loop
     running = True
+    gd.draw_polygons()
     while running:
-        gd.draw_polygons()
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -503,10 +553,13 @@ if __name__ == '__main__':
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x,y = pygame.mouse.get_pos()
                 #find out if click is in a polygon
-                poly = point_in_any_polygons(x,y,gd)
-                if len(poly) != 0:
-                     location = Find_Name_from_Polygon(poly, countriesAndStates)
-                     print(location)
+                dictKey = point_in_any_polygons(x,y,gd)
+                if dictKey != "":
+                    print(dg.adjusted_poly_dict[dictKey])
+                    for poly in dg.adjusted_poly_dict[dictKey]:
+                        pygame.draw.polygon(screen, (0,0,0), poly, 10)
+                     
+                    screen.blit(myFont.render(dictKey, 0,(0,0,0),(255,255,255)), (x,y))
                     #if it is draw a black outline around the country
                     # print the countries name
 
