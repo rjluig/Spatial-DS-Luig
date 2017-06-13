@@ -286,7 +286,9 @@ class DrawGeoJson(object):
         """ 
         black = (0,0,0)
         for poly in self.polygons:
+
             adjusted = []
+
             for p in poly:
                 x,y = p
                 adjusted.append(self.convertGeoToPixel(x,y))
@@ -365,6 +367,7 @@ def point_inside_polygon(x,y,poly):
     Polygon is a list of (x,y) pairs.
     http://www.ariel.com.au/a/python-point-int-poly.html
     """
+    print("inside")
     n = len(poly)
     inside =False
 
@@ -394,6 +397,29 @@ def mercator_projection(latlng,zoom=0,tile_size=256):
     y = ((1 - math.log(math.tan(latlng[1] * math.pi / 180) + 1 / math.cos(latlng[1] * math.pi / 180)) / math.pi) / 2 * pow(2, 0)) * tile_size
    
     return (x,y)
+
+#########################################################################################
+#########################################################################################
+
+def point_in_any_polygons(mousex, mousey, dg):
+    """
+    ***Made By Ryan Luig***
+    loops through polygons from the list of polygons in the class DrawGeoJson and checks
+    them one at a time. If the point x,y is inside any of the polygons the function returns true
+    
+    """
+    
+    print(dg.polygons)
+    for poly in dg.polygons:
+        adjusted = []
+        for p in poly:
+            x,y = p
+            adjusted.append(dg.convertGeoToPixel(x,y))
+        if point_inside_polygon(mousex,mousey, adjusted):
+            return True
+
+    return False
+
 
 if __name__ == '__main__':
 
@@ -428,8 +454,8 @@ if __name__ == '__main__':
     # df.add_polygons(['FRA','TX','ESP','AFG','NY'])
     # df.add_polygons(['TX','NY','ME','Kenya'])
     df.add_polygons(['Spain','France','Belgium','Italy','Ireland','Scotland','Greece','Germany','Egypt','Morocco','India'])
-
-
+    #df.add_polygons(['Spain','France','Belgium'])
+    print(gd.polygons)
     # Main loop
     running = True
     while running:
@@ -439,8 +465,10 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                pass
+                x,y = pygame.mouse.get_pos()
                 #find out if click is in a polygon
+                if point_in_any_polygons(x,y,gd):
                 #if it is draw a black outline around the country
                 # print the countries name
             pygame.display.flip()
+        
