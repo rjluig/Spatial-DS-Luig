@@ -367,7 +367,6 @@ def point_inside_polygon(x,y,poly):
     Polygon is a list of (x,y) pairs.
     http://www.ariel.com.au/a/python-point-int-poly.html
     """
-    print("inside")
     n = len(poly)
     inside =False
 
@@ -401,25 +400,62 @@ def mercator_projection(latlng,zoom=0,tile_size=256):
 #########################################################################################
 #########################################################################################
 
+#Ryan's Functions
 def point_in_any_polygons(mousex, mousey, dg):
     """
-    ***Made By Ryan Luig***
     loops through polygons from the list of polygons in the class DrawGeoJson and checks
-    them one at a time. If the point x,y is inside any of the polygons the function returns true
-    
+    them one at a time. If the point x,y is inside any of the polygons. The polygon the point
+    was in is returned. If no polygons contains the point and empty list is returned.
     """
-    
-    print(dg.polygons)
     for poly in dg.polygons:
         adjusted = []
         for p in poly:
             x,y = p
             adjusted.append(dg.convertGeoToPixel(x,y))
         if point_inside_polygon(mousex,mousey, adjusted):
-            return True
 
-    return False
+            return poly
 
+    return []
+
+def Find_Name_from_Polygon(poly, countries):
+    """
+    Given a polygon and list of countries or their codes(and/or states) 
+    this function finds which country the polygon belongs to 
+    """
+    
+    for c in countries:
+        wc = WorldCountries(DIRPATH + '/../Json_Files/countries.geo.json')
+        sb = StateBorders(DIRPATH + '/../Json_Files/state_borders.json')
+        content = wc.get_country(c)
+
+        if content != []: #if we are working with a country
+            print(poly)
+            for polygons in content:
+                for polygon in polygons:
+                    if type(polygon[0][0]) is float:
+                        print(polygon)
+                        print(" ")
+                        print(poly)
+                        if polygon == poly:
+                            return c
+                    else:
+                        for sub_poly in polygon:
+                            if sub_poly == poly:
+                                return c
+        # content = sb.get_state(c)
+        # if content != []: #if we are working with a state
+        #     for polygons in content:
+        #         for polygon in polygons:
+        #             if type(polygon[0][0]) is float:
+        #                 if polygon == poly:
+        #                     return c
+        #             else:
+        #                 for sub_poly in polygon:
+        #                     if sub_poly == poly:
+        #                         return c
+        return " "
+            
 
 if __name__ == '__main__':
 
@@ -450,12 +486,12 @@ if __name__ == '__main__':
     gd = DrawGeoJson(screen,width,height)
     df = DrawingFacade(width,height)
 
+    countriesAndStates =['Spain','France','Belgium','Italy','Ireland','Scotland','Greece','Germany','Egypt','Morocco','India']
     # Add countries and states to our drawing facade.
     # df.add_polygons(['FRA','TX','ESP','AFG','NY'])
     # df.add_polygons(['TX','NY','ME','Kenya'])
-    df.add_polygons(['Spain','France','Belgium','Italy','Ireland','Scotland','Greece','Germany','Egypt','Morocco','India'])
-    #df.add_polygons(['Spain','France','Belgium'])
-    print(gd.polygons)
+    df.add_polygons(countriesAndStates)
+    
     # Main loop
     running = True
     while running:
@@ -467,8 +503,12 @@ if __name__ == '__main__':
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x,y = pygame.mouse.get_pos()
                 #find out if click is in a polygon
-                if point_in_any_polygons(x,y,gd):
-                #if it is draw a black outline around the country
-                # print the countries name
+                poly = point_in_any_polygons(x,y,gd)
+                if len(poly) != 0:
+                     location = Find_Name_from_Polygon(poly, countriesAndStates)
+                     print(location)
+                    #if it is draw a black outline around the country
+                    # print the countries name
+
             pygame.display.flip()
         
