@@ -521,7 +521,7 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode((width, height)) 
     pygame.font.init()
     fontStr = pygame.font.get_default_font()
-    myFont = pygame.font.SysFont(fontStr, 30)
+    myFont = pygame.font.SysFont(fontStr, 16)
     # Set title of window
     pygame.display.set_caption('Draw World Polygons')
 
@@ -542,26 +542,59 @@ if __name__ == '__main__':
     # df.add_polygons(['TX','NY','ME','Kenya'])
     df.add_polygons(countriesAndStates)
     dg.adjust_poly_dictionary()
+
+    lst = []
+    box = []
+    fontlst = []
     # Main loop
     running = True
-    gd.draw_polygons()
     while running:
+        gd.draw_polygons()
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                x,y = pygame.mouse.get_pos()
+                mousex,mousey = pygame.mouse.get_pos()
                 #find out if click is in a polygon
-                dictKey = point_in_any_polygons(x,y,gd)
+                dictKey = point_in_any_polygons(mousex,mousey,gd)
                 if dictKey != "":
-                    print(dg.adjusted_poly_dict[dictKey])
+                    xmin = 4096
+                    ymin = 4096
+                    ymax = -1
+                    xmax = -1
+
                     for poly in dg.adjusted_poly_dict[dictKey]:
-                        pygame.draw.polygon(screen, (0,0,0), poly, 10)
+                        lst.append(poly)
+                        pygame.draw.polygon(screen, (0,0,0), poly, 8)
+
+                        for p in poly:
+                            x, y = p
+                            if xmin > x:
+                                xmin =x
+                            elif xmax < x:
+                                xmax = x
+
+                            if ymin > y:
+                                ymin = y
+                            elif ymax < y:
+                                ymax = y
+                
+                    box.append([(xmin,ymin),(xmin,ymax),(xmax,ymax),(xmax,ymin)])
+                
                      
-                    screen.blit(myFont.render(dictKey, 0,(0,0,0),(255,255,255)), (x,y))
+                    fontlst.append((myFont.render(dictKey, 0,(0,0,0),(255,255,255)), (mousex,mousey)))
                     #if it is draw a black outline around the country
                     # print the countries name
+            for poly in lst:
+                pygame.draw.polygon(screen, (0,0,0), poly, 8)
+                
+            for poly in box:
+                pygame.draw.polygon(screen,(255,0,0),poly,3)
+
+            for mytext in fontlst:
+                surface, coord = mytext
+                screen.blit(surface, coord)
 
             pygame.display.flip()
         
