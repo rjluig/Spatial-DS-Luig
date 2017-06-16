@@ -536,19 +536,22 @@ if __name__ == '__main__':
     df = DrawingFacade(width,height)
     dg = DrawGeoJson(screen, width, height)
 
-    countriesAndStates =['Spain','France','Belgium','Italy','Ireland','Scotland','Greece','Germany','Egypt','Morocco','India']
+    countriesAndStates =['Spain','Turkey','Finland','Poland','Sweden','Norway','Portugal','France','Belgium','Italy','Ireland','Scotland','Greece','Germany','Egypt','Morocco','India']
     # Add countries and states to our drawing facade.
     # df.add_polygons(['FRA','TX','ESP','AFG','NY'])
     # df.add_polygons(['TX','NY','ME','Kenya'])
     df.add_polygons(countriesAndStates)
     dg.adjust_poly_dictionary()
 
+    mousex = 0
+    mousey = 0
     lst = []
     box = []
-    fontlst = []
+    text = 0
     # Main loop
     running = True
     while running:
+        screen.fill((255,255,255))
         gd.draw_polygons()
         
         for event in pygame.event.get():
@@ -563,8 +566,10 @@ if __name__ == '__main__':
                     ymin = 4096
                     ymax = -1
                     xmax = -1
-
+                    if(len(lst) != 0):
+                        lst[:] = []
                     for poly in dg.adjusted_poly_dict[dictKey]:
+                        
                         lst.append(poly)
                         pygame.draw.polygon(screen, (0,0,0), poly, 8)
 
@@ -579,22 +584,23 @@ if __name__ == '__main__':
                                 ymin = y
                             elif ymax < y:
                                 ymax = y
-                
+                    if(len(box) != 0):
+                        box[:] = []            
                     box.append([(xmin,ymin),(xmin,ymax),(xmax,ymax),(xmax,ymin)])
                 
                      
-                    fontlst.append((myFont.render(dictKey, 0,(0,0,0),(255,255,255)), (mousex,mousey)))
+                    text = (myFont.render(dictKey, 0,(0,0,0),(255,255,255)),(mousex, mousey))
+                    
                     #if it is draw a black outline around the country
                     # print the countries name
             for poly in lst:
-                pygame.draw.polygon(screen, (0,0,0), poly, 8)
+                pygame.draw.polygon(screen, (0,0,0), poly, 3)
                 
             for poly in box:
                 pygame.draw.polygon(screen,(255,0,0),poly,3)
-
-            for mytext in fontlst:
-                surface, coord = mytext
-                screen.blit(surface, coord)
+            if(type(text) != int):
+                thefont, pos = text
+                screen.blit(thefont, pos)
 
             pygame.display.flip()
         
