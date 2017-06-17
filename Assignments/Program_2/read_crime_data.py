@@ -2,7 +2,7 @@ import pprint as pp
 import os,sys
 
 # Get current working path
-def get_crime_points():
+def get_crime_data():
     DIRPATH = os.path.dirname(os.path.realpath(__file__))
     keys = []
     crimes = []

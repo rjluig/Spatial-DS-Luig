@@ -70,22 +70,40 @@ def adjust_points(pointslst, width, height):
     ymax = -1
 
     for x, y in pointslst:
-        if xmin > x:
-            xmin =x
-        elif xmax < x:
-            xmax = x
 
-        if ymin > y:
-            ymin = y
-        elif ymax < y:
-            ymax = y
+        if(x != ''):
+            x = int(x)
+            y = int(y)
+            if xmin > x:
+                xmin =x
+            elif xmax < x:
+                xmax = x
+
+            if ymin > y:
+                ymin = y
+            elif ymax < y:
+                ymax = y
 
     for x, y in pointslst:
-        newx = ((x - xmin) / (xmax - xmin)) #* width
-        newy = ((y - ymin)/(ymax - ymin)) #* height
-        newPoints.append((newx, newy))
+        if(x != ''):
+            x = int(x)
+            y = int(y)
+            newx = int(((x - xmin) / (xmax - xmin)) * width)
+            newy = int(((y - ymin)/(ymax - ymin)) * height)
+            newPoints.append((newx, newy))
 
     return newPoints
+
+def extract_points(crimelist):
+    x = -1
+    y = -1
+    points = []
+    for line in crimelist:
+        x = line[19]
+        y = line[20]
+        points.append((x,y))
+
+    return points
 
 if __name__ == '__main__':
     background_colour = (255,255,255)
@@ -98,13 +116,14 @@ if __name__ == '__main__':
 
     pygame.display.flip()
 
-    epsilon = 20
-    min_pts = 5.0
+    epsilon = 10
+    min_pts = 4.0
 
     points = []
 
     
-    points = read_crime_data.get_crime_points()
+    points = read_crime_data.get_crime_data()
+    points = extract_points(points)
     points = adjust_points(points, width, height)
     
 
