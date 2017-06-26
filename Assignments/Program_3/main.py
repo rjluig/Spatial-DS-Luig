@@ -27,7 +27,6 @@ if __name__ == "__main__":
     years = []
     for x in range(1960,2017):
         years.append(str(x))
-    pp.pprint(years)
     count = 0
 
     running = True
@@ -35,12 +34,15 @@ if __name__ == "__main__":
         if count < len(years):
             for p in data[years[count]]:
                 pygame.draw.circle(screen, (255,0,0), p, 1,0)
-            time.sleep(1)
+            time.sleep(.5)
+            print(years[count])
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                pass
+                screen.blit(bg, (0,0))
+                count = 0
+                
                 #clean_area(screen,(0,0),width,height,(255,255,255))
         pygame.display.flip()
         count += 1
