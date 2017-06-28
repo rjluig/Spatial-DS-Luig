@@ -3,7 +3,8 @@ import os,sys
 import json
 import collections
 
-
+forGit = True
+count = 0
 
 #DIRPATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -25,14 +26,15 @@ all_volcanos = []
         ]
       }
 '''
-geocollection = {}
-
-geocollection['type'] = 'FeatureCollection'
-
 
 for v in data:
     # print(v)
     # sys.exit()
+    if forGit:
+      count += 1
+      print(count)
+      if count == 1000:
+        break
     gj = collections.OrderedDict()
     gj['type'] = "Feature"
     gj['properties'] = v
@@ -48,14 +50,12 @@ for v in data:
     del gj['properties']['Lat']
     del gj['properties']['Lon']
    
-   
     all_volcanos.append(gj)
 
 #pp.pprint(all_airports)
-geocollection['features'] = all_volcanos
 myFile = "/home/ryan/Documents/Programming/GitRepos/Spatial-DS-Luig/Assignments/Program_4/geo_json/volcanos_geo_json.json"
 out = open(myFile,"w+")
 
-out.write(json.dumps(geocollection, sort_keys=False,indent=4, separators=(',', ': ')))
+out.write(json.dumps(all_volcanos, sort_keys=False,indent=4, separators=(',', ': ')))
 
 out.close()

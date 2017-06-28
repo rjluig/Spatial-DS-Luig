@@ -3,7 +3,8 @@ import os,sys
 import json
 import collections
 
-
+forGit = True
+count = 0
 
 #DIRPATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -36,13 +37,14 @@ all_earthquakes = []
             "types": ",origin,"
         },
 '''
-geocollection = {}
-
-geocollection['type'] = 'FeatureCollection'
-
 
 for k,v in data.items():
     for i in v:
+        if forGit:
+            count += 1
+            print(count)
+            if count == 1000:
+                break
         gj = collections.OrderedDict()
         gj['type'] = "Feature"
         gj['properties'] = i
@@ -52,6 +54,8 @@ for k,v in data.items():
         gj["geometry"] = geometry
 
         all_earthquakes.append(gj)
+    if count == 1000:
+        break
 """
 
             "type": "Feature",
@@ -73,10 +77,10 @@ for k,v in data.items():
             }
 """
 #pp.pprint(all_airports)
-geocollection['features'] = all_earthquakes
+print(len(all_earthquakes))
 myFile = "/home/ryan/Documents/Programming/GitRepos/Spatial-DS-Luig/Assignments/Program_4/geo_json/earthquakes_geo_json.json"
 out = open(myFile,"w+")
 
-out.write(json.dumps(geocollection, sort_keys=False,indent=4, separators=(',', ': ')))
+out.write(json.dumps(all_earthquakes, sort_keys=False,indent=4, separators=(',', ': ')))
 
 out.close()
