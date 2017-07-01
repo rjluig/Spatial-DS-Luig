@@ -9,7 +9,6 @@ class mongoHelper(object):
         self.db_airports = self.client.tugtutorial.airports
         self.db_states = self.client.tugtutorial.states
 
-
     def get_airports_in_poly(self,poly):
         """
         Get airports within some polygon

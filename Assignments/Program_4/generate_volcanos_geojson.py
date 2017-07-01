@@ -30,11 +30,11 @@ all_volcanos = []
 for v in data:
     # print(v)
     # sys.exit()
-    if forGit:
-      count += 1
-      print(count)
-      if count == 1000:
-        break
+    # if forGit:
+    #   count += 1
+    #   print(count)
+    #   if count == 1000:
+    #     break
     gj = collections.OrderedDict()
     gj['type'] = "Feature"
     gj['properties'] = v
@@ -43,9 +43,9 @@ for v in data:
     lat = v['Lat']
     lon = v['Lon']
     if lat == '':
-         gj["geometry"]["coordinates"] = []
+         gj["geometry"]["coordinates"] = [0, -90]
     else:
-        gj["geometry"]["coordinates"] = [lon, lat]
+        gj["geometry"]["coordinates"] = [float(lon), float(lat)]
         
     del gj['properties']['Lat']
     del gj['properties']['Lon']
