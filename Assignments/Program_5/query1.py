@@ -22,6 +22,7 @@ class mongoHelper(object):
         self.db_earthquakes = self.client.world_data.earthquakes
         self.db_states = self.client.world_data.states
         self.db_volcanos = self.client.world_data.volcanos
+        self.db_meteorites = self.client.world_data.meteorites
 
 
     def find_near_features(self, lat, lon, dist):
@@ -29,9 +30,10 @@ class mongoHelper(object):
         #returns tuple of lists one the first with earthquakes the second with volcanos
         quake_list = []
         volcano_list = []
+        meteor_list = []
         all_equakes = self.db_earthquakes.find({ 'geometry' : { '$nearSphere' : {'$geometry' : {'coordinates' : [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
         all_volcanos = self.db_volcanos.find({ 'geometry' : {'$nearSphere' : {'$geometry' : { 'coordinates' : [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
-
+        all_meteors = self.db_meteorites.find({ 'geometry' : {'$nearSphere' : {'$geometry' : { 'coordinates' : [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
         
         for quake in all_equakes:
             quake_list.append(quake)
@@ -39,7 +41,10 @@ class mongoHelper(object):
         for volc in all_volcanos:
             volcano_list.append(volc)
 
-        return (quake_list, volcano_list)
+        for met in all_meteors:
+            meteor_list.append(met)
+
+        return (quake_list, volcano_list, meteor_list)
 
 
     def get_doc_by_keyword(self,db_name,field,key):
@@ -143,13 +148,16 @@ def find_features_on_route(route, d):
     mh = mongoHelper()
     quake_p = []
     volc_p = []
+    met_p = []
     volc = []
+    meteors = []
     earth = []
     for ap in route:
         #find all the features
         lon = ap['geometry']['coordinates'][0]
         lat = ap['geometry']['coordinates'][1]
-        qua, vol = mh.find_near_features(lat, lon, d)
+        qua, vol, met = mh.find_near_features(lat, lon, d)
+        meteors = meteors + met
         earth = earth + qua
         volc  = volc + vol
 
@@ -163,8 +171,13 @@ def find_features_on_route(route, d):
         lon = v['geometry']['coordinates'][0]
         lat = v['geometry']['coordinates'][1]
         volc_p.append([lon, lat])
+
+    for m in meteors:
+       lon = m['geometry']['coordinates'][0]
+       lat = m['geometry']['coordinates'][1]
+       met_p.append([lon,lat]) 
         
-    return (quake_p, volc_p)
+    return (quake_p, volc_p, met_p)
 
 def convert_lat_lon(data):
     
@@ -253,7 +266,7 @@ def main():
     ap_p = []
     flight_plan = flight_path()
 
-    quake, volc = find_features_on_route(flight_plan, 500) 
+    quake, volc, met = find_features_on_route(flight_plan, 500) 
 
     for x in flight_plan:
         lon =x['geometry']['coordinates'][0]
@@ -264,7 +277,8 @@ def main():
     route = convert_lat_lon(ap_p)
     quake = convert_lat_lon(quake)
     volc  = convert_lat_lon(volc)
-    
+    met   = convert_lat_lon(met)
+
     (width, height) = (1024, 512)
 
     screen = pygame.display.set_mode((width, height))
@@ -276,7 +290,11 @@ def main():
         pygame.draw.circle(screen, (0,0,255), p, 1,0)
 
     for p in volc:
-        pygame.draw.circle(screen, (255,0,0), p, 1, 0)   
+        pygame.draw.circle(screen, (255,0,0), p, 1, 0) 
+
+    for p in met:
+        pygame.draw.circle(screen, (0,255,0), p, 1, 0) 
+
     pygame.draw.lines(screen, (255,140,0), False, route, 2)
 
 

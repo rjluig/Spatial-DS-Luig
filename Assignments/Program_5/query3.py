@@ -170,9 +170,16 @@ def main():
     max_y = -1
     min_x = 9999
     min_y = 9999
-    
 
-    for key in clusters:
+    sorted_len = []
+    if(len(clusters) > 5):
+        for key in clusters:
+            sorted_len.append((key, len(clusters[key])))
+
+        sorted_len.sort(key=lambda tup : tup[1])
+
+    for i in range(5):
+        key, length = sorted_len.pop()
         allx = []
         ally = []
         #find the min/max and draw bounding box
