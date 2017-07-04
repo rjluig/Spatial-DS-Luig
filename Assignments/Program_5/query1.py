@@ -22,19 +22,15 @@ class mongoHelper(object):
         self.db_earthquakes = self.client.world_data.earthquakes
         self.db_states = self.client.world_data.states
         self.db_volcanos = self.client.world_data.volcanos
-        self.db_ = self.client.world_data.ap
 
 
     def find_near_features(self, lat, lon, dist):
         #features includes earthquakes, and volcanos
+        #returns tuple of lists one the first with earthquakes the second with volcanos
         quake_list = []
         volcano_list = []
-        all_equakes = self.db_earthquakes.find({ 'geometry' : { 
-                                                    '$nearSphere' : {'$geometry' : {
-                                                           'coordinates' : [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
-        all_volcanos = self.db_volcanos.find({ 'geometry' : { 
-                                                    '$nearSphere' : {'$geometry' : { 'coordinates' :
-                                                            [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
+        all_equakes = self.db_earthquakes.find({ 'geometry' : { '$nearSphere' : {'$geometry' : {'coordinates' : [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
+        all_volcanos = self.db_volcanos.find({ 'geometry' : {'$nearSphere' : {'$geometry' : { 'coordinates' : [lon, lat] }, '$maxDistance' :1609.344  *dist }} })
 
         
         for quake in all_equakes:
@@ -43,36 +39,8 @@ class mongoHelper(object):
         for volc in all_volcanos:
             volcano_list.append(volc)
 
+        return (quake_list, volcano_list)
 
-        return quake_list + volcano_list
-    def get_airports_in_poly(self,poly):
-        """
-        Get airports within some polygon
-        Params:
-            poly (object): geojson poly
-        """
-        state_airports = self.db_airports.find( { 'geometry' : { '$geoWithin' : { '$geometry' : poly } } })
-
-        ap_list = []
-        for ap in state_airports:
-            ap_list.append(ap)
-
-        return ap_list
-
-    def get_state_poly(self,state):
-        state_poly = self.db_states.find_one({'code' : state})
-        return(state_poly['loc'])
-
-    def get_afb_airports(self):
-
-        
-        res = self.db_airports.find({"type" : "Military"})
-
-        res_list = []
-        for r in res:
-            res_list.append(r)
-
-        return res_list
 
     def get_doc_by_keyword(self,db_name,field,key):
 
@@ -102,7 +70,6 @@ class mongoHelper(object):
        # air_res = self.db_ap.find( { 'geometry' : { '$geoWithin' : { '$geometry' : poly } } })
 
         min = 999999
-        #print(lst[0])
         
         for ap in lst:
             lon2 = ap['geometry']['coordinates'][0]
@@ -121,13 +88,6 @@ class mongoHelper(object):
         for r in air_res:
             res.append(r) 
         return res
-
-
-    def get_state_by_point(self,point):
-        return self.db_states.find_one({'loc':{'$geoIntersects':{'$geometry':{ "type" : "Point","coordinates" : point }}}})
-
-    def get_state_by_name(self,name):
-        pass
 
     def _haversine(self,lon1, lat1, lon2, lat2):
         """
@@ -176,33 +136,42 @@ def flight_path():
         ap_list.append(closest_ap)
         start_doc = closest_ap
 
-    #print(ap_list)
     return ap_list
 
 def find_features_on_route(route, d):
-    features = []
+    
     mh = mongoHelper()
-
+    quake_p = []
+    volc_p = []
+    volc = []
+    earth = []
     for ap in route:
         #find all the features
         lon = ap['geometry']['coordinates'][0]
         lat = ap['geometry']['coordinates'][1]
-        added = mh.find_near_features(lat, lon, d)
-        features += added
+        qua, vol = mh.find_near_features(lat, lon, d)
+        earth = earth + qua
+        volc  = volc + vol
 
-    return features
+
+    for e in earth:
+        lon = e['geometry']['coordinates'][0]
+        lat = e['geometry']['coordinates'][1]
+        quake_p.append([lon,lat])
+        
+    for v in volc:
+        lon = v['geometry']['coordinates'][0]
+        lat = v['geometry']['coordinates'][1]
+        volc_p.append([lon, lat])
+        
+    return (quake_p, volc_p)
 
 def convert_lat_lon(data):
     
     points = []
     allx = []
     ally = []
-    #pp.pprint(data)
-    for obj in data:
-
-        #st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-        lon = obj['geometry']['coordinates'][0]
-        lat = obj['geometry']['coordinates'][1]
+    for lon, lat in data:
         x,y = (mercX(lon),mercY(lat))
         allx.append(x)
         ally.append(y)
@@ -281,18 +250,21 @@ def main():
     start = sys.argv[1]  #starting ap code
     end   = sys.argv[2]  #ending ap code
     maxd  = int(sys.argv[3])  #max distance between each ap
-    
+    ap_p = []
     flight_plan = flight_path()
-    #pp.pprint(flight_plan)
-    #sys.exit()
 
-    features = find_features_on_route(flight_plan, 500) 
+    quake, volc = find_features_on_route(flight_plan, 500) 
 
-    #get points for airports and features
-    route = convert_lat_lon(flight_plan)
-    print(route)
-    feat = convert_lat_lon(features)
+    for x in flight_plan:
+        lon =x['geometry']['coordinates'][0]
+        lat = x['geometry']['coordinates'][1]
+        ap_p.append([lon, lat])
 
+
+    route = convert_lat_lon(ap_p)
+    quake = convert_lat_lon(quake)
+    volc  = convert_lat_lon(volc)
+    
     (width, height) = (1024, 512)
 
     screen = pygame.display.set_mode((width, height))
@@ -300,9 +272,12 @@ def main():
     bg = pygame.image.load('bg-map.png')
     
     screen.blit(bg, (0,0))
-    for p in feat:
-        pygame.draw.circle(screen, (255,0,0), p, 1,0)
-    pygame.draw.lines(screen, (0,0,255), False, route, 2)
+    for p in quake:
+        pygame.draw.circle(screen, (0,0,255), p, 1,0)
+
+    for p in volc:
+        pygame.draw.circle(screen, (255,0,0), p, 1, 0)   
+    pygame.draw.lines(screen, (255,140,0), False, route, 2)
 
 
     pygame.display.flip()
