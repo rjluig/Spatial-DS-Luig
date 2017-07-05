@@ -44,6 +44,7 @@ class mongoHelper(object):
     def find_near_features(self, feature, lon, lat, dist=1000):
         volc_list = []
         quake_list = []
+        meteor_list = []
         #print('find lon, lat: ' + str(lon) + ' ' + str(lat) )
         if(feature == 'earthquakes'):
             all_equakes = self.db_earthquakes.find({ 'geometry' :{'$nearSphere' :{'$geometry' :{'coordinates' : [lon, lat] }, '$maxDistance' :1609.344 *dist} } })
@@ -59,6 +60,13 @@ class mongoHelper(object):
                 volc_list.append(volc)
             
             return volc_list
+
+        if(feature == 'meteorites'):
+            all_meteors = self.db_volcanos.find({ 'geometry' :{'$nearSphere' :{'$geometry' :{'coordinates' : [lon, lat] }, '$maxDistance' :1609.344 *dist} } })
+            for mets in all_meteors:
+                meteor_list.append(mets)
+            
+            return meteor_list
        
 
 def convert_lon_lat(data):
@@ -66,7 +74,7 @@ def convert_lon_lat(data):
     points = []
     allx = []
     ally = []
-    for lon, lat, alt in data:
+    for lon, lat in data:
         x,y = (mercX(lon),mercY(lat))
         allx.append(x)
         ally.append(y)
@@ -176,7 +184,8 @@ def get_features(feature, field, value, minmax, lon, lat, max_res, radius):
             max_res = len(filtered)
 
         for i in range(max_res):
-            res.append(filtered.pop()['geometry']['coordinates'])
+            point = filtered.pop()['geometry']['coordinates']
+            res.append((point[0], point [1]))
         
         points = convert_lon_lat(res)
     return points

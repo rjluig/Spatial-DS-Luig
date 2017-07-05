@@ -44,8 +44,8 @@ class mongoHelper(object):
         
             return volc_list
 
-        if(feature == 'meteors'):
-            all_meteors = self.db.meteorites.find()
+        if(feature == 'meteorites'):
+            all_meteors = self.db_meteorites.find()
             for met in all_meteors:
                 meteor_list.append(met)
 
